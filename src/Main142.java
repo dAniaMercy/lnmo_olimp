@@ -6,7 +6,7 @@ public class Main142 {
 
     static int find(int v) {
         if (parent[v] == v) return v;
-        return parent[v] = find(parent[v]); // Сжатие пути
+        return parent[v] = find(parent[v]);
     }
 
     static void union(int a, int b) {
@@ -41,10 +41,8 @@ public class Main142 {
             edges.add(new int[]{u, v, w});
         }
 
-        // Сортировка рёбер по весу
         edges.sort(Comparator.comparingInt(e -> e[2]));
 
-        // Инициализация DSU
         parent = new int[N];
         rank = new int[N];
         for (int i = 0; i < N; i++) parent[i] = i;
@@ -54,11 +52,11 @@ public class Main142 {
 
         for (int[] edge : edges) {
             int u = edge[0], v = edge[1], w = edge[2];
-            if (find(u) != find(v)) { // Если вершины в разных компонентах
+            if (find(u) != find(v)) {
                 union(u, v);
                 mstWeight += w;
                 edgesUsed++;
-                if (edgesUsed == N - 1) break; // Достаточно N-1 рёбер
+                if (edgesUsed == N - 1) break;
             }
         }
 
