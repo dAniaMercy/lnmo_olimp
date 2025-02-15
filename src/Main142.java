@@ -1,12 +1,12 @@
 import java.io.*;
 import java.util.*;
 
-public class Main {
+public class Main142 {
     static int[] parent, rank;
 
     static int find(int v) {
         if (parent[v] == v) return v;
-        return parent[v] = find(parent[v]);
+        return parent[v] = find(parent[v]); // Сжатие пути
     }
 
     static void union(int a, int b) {
@@ -25,8 +25,8 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-        BufferedReader br = new BufferedReader(new FileReader("INPUT.txt"));
-        PrintWriter pw = new PrintWriter(new FileWriter("OUTPUT.txt"));
+        BufferedReader br = new BufferedReader(new FileReader("inputs/INPUT142.txt"));
+        PrintWriter pw = new PrintWriter(new FileWriter("outputs/OUTPUT142.txt"));
 
         StringTokenizer st = new StringTokenizer(br.readLine());
         int N = Integer.parseInt(st.nextToken());
@@ -37,27 +37,32 @@ public class Main {
             st = new StringTokenizer(br.readLine());
             int u = Integer.parseInt(st.nextToken()) - 1;
             int v = Integer.parseInt(st.nextToken()) - 1;
-            edges.add(new int[]{u, v});
+            int w = Integer.parseInt(st.nextToken());
+            edges.add(new int[]{u, v, w});
         }
 
+        // Сортировка рёбер по весу
+        edges.sort(Comparator.comparingInt(e -> e[2]));
+
+        // Инициализация DSU
         parent = new int[N];
         rank = new int[N];
         for (int i = 0; i < N; i++) parent[i] = i;
 
-        List<int[]> mst = new ArrayList<>();
+        int mstWeight = 0;
+        int edgesUsed = 0;
+
         for (int[] edge : edges) {
-            int u = edge[0], v = edge[1];
-            if (find(u) != find(v)) {
+            int u = edge[0], v = edge[1], w = edge[2];
+            if (find(u) != find(v)) { // Если вершины в разных компонентах
                 union(u, v);
-                mst.add(new int[]{u + 1, v + 1});
-                if (mst.size() == N - 1) break;
+                mstWeight += w;
+                edgesUsed++;
+                if (edgesUsed == N - 1) break; // Достаточно N-1 рёбер
             }
         }
 
-        for (int[] edge : mst) {
-            pw.println(edge[0] + " " + edge[1]);
-        }
-
+        pw.println(mstWeight);
         br.close();
         pw.close();
     }
