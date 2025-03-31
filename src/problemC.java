@@ -1,16 +1,6 @@
 import java.io.*;
 import java.util.*;
 
-/**
- *       LL             OOOOOOOO      RRRRRRRRR       EEEEEEEEEE     NNNN     NN
- *       LL            OO      OO     RR      RR      EE             NN NN    NN
- *       LL           OO        OO    RR       RR     EE             NN  NN   NN
- *       LL          OO          OO   RR      RR      EEEEEEE        NN   NN  NN
- *       LL           OO        OO    RRRRRRR         EEEEEEE        NN    NN NN
- *       LL            OO      OO     RR    RR        EE             NN     NNNN
- *       LLLLLLLLL      OOOOOOOO      RR     RR       EEEEEEEEEE     NN      NNN
- */
-
 public class problemC {
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -41,31 +31,44 @@ public class problemC {
                 boostMap.get(pos).add(val);
             }
 
-            int answer = solveTest(n, m, L, obstacles, boostMap);
+            int answer = solveTest(n, L, obstacles, boostMap);
             result.append(answer).append("\n");
         }
 
         System.out.print(result);
     }
 
-    private static int solveTest(int n, int m, int L, int[][] obstacles, Map<Integer, List<Integer>> boostMap) {
-        boolean[] isObstacle = new boolean[L + 1];
-        for (int[] obstacle : obstacles) {
-            for (int pos = obstacle[0]; pos <= Math.min(obstacle[1], L); pos++) {
-                isObstacle[pos] = true;
-            }
-        }
-
+    private static int solveTest(int n, int L, int[][] obstacles, Map<Integer, List<Integer>> boostMap) {
         PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[2]));
 
         pq.add(new int[]{1, 1, 0});
 
-        if (boostMap.containsKey(1)) {
-            processBoosts(1, 1, 0, boostMap.get(1), pq);
-        }
+        Map<Long, Integer> visited = new HashMap<>();
+        visited.put(encodeState(1, 1), 0);
 
-        Map<String, Integer> visited = new HashMap<>();
-        visited.put("1,1", 0);
+        if (boostMap.containsKey(1)) {
+            List<Integer> boosts = boostMap.get(1);
+            for (int mask = 1; mask < (1 << boosts.size()); mask++) {
+                int additionalPower = 0;
+                int additionalBoosts = 0;
+
+                for (int i = 0; i < boosts.size(); i++) {
+                    if ((mask & (1 << i)) != 0) {
+                        additionalPower += boosts.get(i);
+                        additionalBoosts++;
+                    }
+                }
+
+                int newJumpPower = 1 + additionalPower;
+                int newBoostsUsed = additionalBoosts;
+
+                long stateKey = encodeState(1, newJumpPower);
+                if (!visited.containsKey(stateKey) || visited.get(stateKey) > newBoostsUsed) {
+                    visited.put(stateKey, newBoostsUsed);
+                    pq.add(new int[]{1, newJumpPower, newBoostsUsed});
+                }
+            }
+        }
 
         while (!pq.isEmpty()) {
             int[] current = pq.poll();
@@ -77,25 +80,44 @@ public class problemC {
                 return boostsUsed;
             }
 
-            String stateKey = pos + "," + jumpPower;
+            long stateKey = encodeState(pos, jumpPower);
 
-            if (visited.containsKey(stateKey) && visited.get(stateKey) < boostsUsed) {
+            if (visited.get(stateKey) < boostsUsed) {
                 continue;
             }
 
             for (int newPos = pos + 1; newPos <= Math.min(pos + jumpPower, L); newPos++) {
-                // Пропускаем, если это препятствие
-                if (newPos < isObstacle.length && isObstacle[newPos]) {
+                if (isObstacle(newPos, obstacles)) {
                     continue;
                 }
 
-                String newStateKey = newPos + "," + jumpPower;
+                long newStateKey = encodeState(newPos, jumpPower);
                 if (!visited.containsKey(newStateKey) || visited.get(newStateKey) > boostsUsed) {
                     visited.put(newStateKey, boostsUsed);
                     pq.add(new int[]{newPos, jumpPower, boostsUsed});
+                }
 
-                    if (boostMap.containsKey(newPos)) {
-                        processBoosts(newPos, jumpPower, boostsUsed, boostMap.get(newPos), pq);
+                if (boostMap.containsKey(newPos)) {
+                    List<Integer> boosts = boostMap.get(newPos);
+                    for (int mask = 1; mask < (1 << boosts.size()); mask++) {
+                        int additionalPower = 0;
+                        int additionalBoosts = 0;
+
+                        for (int i = 0; i < boosts.size(); i++) {
+                            if ((mask & (1 << i)) != 0) {
+                                additionalPower += boosts.get(i);
+                                additionalBoosts++;
+                            }
+                        }
+
+                        int newJumpPower = jumpPower + additionalPower;
+                        int newBoostsUsed = boostsUsed + additionalBoosts;
+
+                        long boostStateKey = encodeState(newPos, newJumpPower);
+                        if (!visited.containsKey(boostStateKey) || visited.get(boostStateKey) > newBoostsUsed) {
+                            visited.put(boostStateKey, newBoostsUsed);
+                            pq.add(new int[]{newPos, newJumpPower, newBoostsUsed});
+                        }
                     }
                 }
             }
@@ -104,22 +126,16 @@ public class problemC {
         return -1;
     }
 
-    private static void processBoosts(int pos, int jumpPower, int boostsUsed, List<Integer> boosts, PriorityQueue<int[]> pq) {
-        for (int mask = 1; mask < (1 << boosts.size()); mask++) {
-            int additionalPower = 0;
-            int additionalBoosts = 0;
+    private static long encodeState(int pos, int jumpPower) {
+        return (long)pos * 10000L + jumpPower;
+    }
 
-            for (int i = 0; i < boosts.size(); i++) {
-                if ((mask & (1 << i)) != 0) {
-                    additionalPower += boosts.get(i);
-                    additionalBoosts++;
-                }
+    private static boolean isObstacle(int pos, int[][] obstacles) {
+        for (int[] obstacle : obstacles) {
+            if (pos >= obstacle[0] && pos <= obstacle[1]) {
+                return true;
             }
-
-            int newJumpPower = jumpPower + additionalPower;
-            int newBoostsUsed = boostsUsed + additionalBoosts;
-
-            pq.add(new int[]{pos, newJumpPower, newBoostsUsed});
         }
+        return false;
     }
 }
